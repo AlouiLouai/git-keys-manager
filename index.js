@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 
-import inquirer from "inquirer";
-import shelljs from "shelljs";
-import chalk from "chalk";
-import { join } from "path";
+const inquirer = require("inquirer");
+const shelljs = require("shelljs");
+const chalk = require("chalk");
+const { join } = require("path");
+const { existsSync } = require("fs");
 
-// Get the user's home directory (Windows style)
 const homeDir = process.env.USERPROFILE || process.env.HOME;
 const sshDir = join(homeDir, ".ssh");
 
-// Function to add SSH key
 const switchSSHKey = (keyPath) => {
-  // Windows uses ssh-agent differently, using Git Bash or WSL could be an option
+  if (!existsSync(keyPath)) {
+    console.error(chalk.red(`❌ SSH key not found: ${keyPath}`));
+    return;
+  }
   const command = `ssh-agent cmd /C "ssh-add ${keyPath}"`;
   const result = shelljs.exec(command);
   if (result.code === 0) {
@@ -21,7 +23,6 @@ const switchSSHKey = (keyPath) => {
   }
 };
 
-// Function to generate SSH key
 const generateSSHKey = async () => {
   const { keyName, email } = await inquirer.prompt([
     {
@@ -92,7 +93,7 @@ const main = async () => {
       },
     ]);
 
-    keyPath = join(sshDir, keyName); // Dynamically build the key path
+    keyPath = join(sshDir, keyName);
   }
 
   if (keyPath) {
@@ -100,4 +101,6 @@ const main = async () => {
   }
 };
 
-main();
+(async () => {
+  await main();
+})();
