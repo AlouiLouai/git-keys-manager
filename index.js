@@ -101,4 +101,3 @@ const main = async () => {
 };
 
 main();
-// now I will test the switch 
