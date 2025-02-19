@@ -7,12 +7,12 @@ SSH Switcher is a simple CLI tool that allows users to easily switch between mul
 ### 🔽 Download the latest version
 You can download the latest `ssh-switcher.exe` from the [GitHub Releases](https://github.com/AlouiLouai/git-keys-manager/releases/latest).
 
-### 🔽 Uncompress the zipped folder 
-you can unzip the git-keys-manager-1.0.1
+Click to `Source code (zip)`
 
 ### 🏃‍♂️ Run the tool
-    - unzip the git-keys-manager-1.0.1 (actually the last release)
-    -After unzipping, simply double-click `ssh-switcher.exe` or run it from the command line:
+Unzip the git-keys-manager-1.0.1 (actually the last release)
+
+After unzipping, simply double-click `ssh-switcher.exe` or run it from the command line:
 
 ```sh
 ssh-switcher.exe
