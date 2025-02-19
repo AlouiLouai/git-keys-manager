@@ -75,32 +75,40 @@ const main = async () => {
 
   if (choice === "exit") {
     console.log(chalk.yellow("🔴 Exiting..."));
-    process.exit(0);
+  } else {
+    let keyPath = choice;
+
+    if (choice === "new") {
+      keyPath = await generateSSHKey();
+    } else if (choice === "personal") {
+      const { keyName } = await inquirer.prompt([
+        {
+          type: "input",
+          name: "keyName",
+          message:
+            "Enter the name of your personal GitHub SSH key (e.g., id_custom):",
+          validate: (input) => (input ? true : "Key name cannot be empty"),
+        },
+      ]);
+      keyPath = join(sshDir, keyName);
+    }
+
+    if (keyPath) {
+      switchSSHKey(keyPath);
+    }
   }
 
-  let keyPath = choice;
-
-  if (choice === "new") {
-    keyPath = await generateSSHKey();
-  } else if (choice === "personal") {
-    const { keyName } = await inquirer.prompt([
-      {
-        type: "input",
-        name: "keyName",
-        message:
-          "Enter the name of your personal GitHub SSH key (e.g., id_custom):",
-        validate: (input) => (input ? true : "Key name cannot be empty"),
-      },
-    ]);
-
-    keyPath = join(sshDir, keyName);
-  }
-
-  if (keyPath) {
-    switchSSHKey(keyPath);
-  }
+  // ✅ Keep the window open with a final prompt
+  await inquirer.prompt([
+    {
+      type: "input",
+      name: "pause",
+      message: chalk.green("\nPress ENTER to exit..."),
+    },
+  ]);
 };
 
+// Run the script
 (async () => {
   await main();
 })();
