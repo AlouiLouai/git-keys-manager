@@ -9,10 +9,15 @@
     "targets": [
       "node18-win-x64"
     ],
-    "outputPath": "dist"
+    "outputPath": "dist",
+    "assets": [
+      "node_modules/**/*"
+    ],
+    "scripts": "index.js"
   },
   "scripts": {
     "start": "node index.js",
+    "build": "pkg .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -20,7 +25,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^0.27.2",
     "chalk": "^4.1.2",
+    "clipboardy": "^2.3.0",
     "inquirer": "^8.2.6",
     "shelljs": "^0.8.5"
   }

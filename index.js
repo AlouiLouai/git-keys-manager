@@ -4,7 +4,9 @@ const inquirer = require("inquirer");
 const shelljs = require("shelljs");
 const chalk = require("chalk");
 const { join } = require("path");
-const { existsSync } = require("fs");
+const { existsSync, readFileSync } = require("fs");
+const axios = require("axios");
+const clipboardy = require("clipboardy");
 
 const homeDir = process.env.USERPROFILE || process.env.HOME;
 const sshDir = join(homeDir, ".ssh");
@@ -45,10 +47,89 @@ const generateSSHKey = async () => {
   const result = shelljs.exec(command);
   if (result.code === 0) {
     console.log(chalk.green(`✔ SSH key generated: ${keyPath}`));
-    return keyPath;
+    return { keyPath, email };
   } else {
     console.error(chalk.red("❌ Failed to generate SSH key"));
     return null;
+  }
+};
+
+const uploadSSHKeyToGitHub = async (keyPath, email) => {
+  const publicKeyPath = `${keyPath}.pub`;
+  if (!existsSync(publicKeyPath)) {
+    console.error(chalk.red(`❌ Public key not found: ${publicKeyPath}`));
+    return false;
+  }
+
+  const publicKey = readFileSync(publicKeyPath, "utf8").trim();
+
+  const { token, title } = await inquirer.prompt([
+    {
+      type: "password",
+      name: "token",
+      message:
+        "Enter your GitHub Personal Access Token (with admin:public_key scope):",
+      validate: (input) => (input ? true : "Token cannot be empty"),
+    },
+    {
+      type: "input",
+      name: "title",
+      message: "Enter a title for the SSH key on GitHub (e.g., My Laptop):",
+      default: `Generated Key - ${new Date().toISOString().split("T")[0]}`,
+    },
+  ]);
+
+  try {
+    const response = await axios.post(
+      "https://api.github.com/user/keys",
+      {
+        title: title,
+        key: publicKey,
+      },
+      {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      }
+    );
+
+    if (response.status === 201) {
+      console.log(chalk.green(`✔ SSH key uploaded to GitHub: ${title}`));
+      return true;
+    }
+  } catch (error) {
+    console.error(
+      chalk.red(
+        `❌ Failed to upload SSH key to GitHub: ${
+          error.response?.data?.message || error.message
+        }`
+      )
+    );
+    return false;
+  }
+};
+
+const copySSHKeyToClipboard = async (keyPath) => {
+  const publicKeyPath = `${keyPath}.pub`;
+  if (!existsSync(publicKeyPath)) {
+    console.error(chalk.red(`❌ Public key not found: ${publicKeyPath}`));
+    return;
+  }
+
+  const publicKey = readFileSync(publicKeyPath, "utf8").trim();
+  try {
+    await clipboardy.write(publicKey);
+    console.log(chalk.green("✔ Public key copied to clipboard!"));
+    console.log(
+      chalk.yellow(
+        "➡️ Paste it into GitHub: Settings > SSH and GPG keys > New SSH key"
+      )
+    );
+  } catch (error) {
+    console.error(
+      chalk.red(`❌ Failed to copy to clipboard: ${error.message}`)
+    );
   }
 };
 
@@ -79,7 +160,33 @@ const main = async () => {
     let keyPath = choice;
 
     if (choice === "new") {
-      keyPath = await generateSSHKey();
+      const result = await generateSSHKey();
+      if (result) {
+        keyPath = result.keyPath;
+        const { action } = await inquirer.prompt([
+          {
+            type: "list",
+            name: "action",
+            message: "What would you like to do with the new SSH key?",
+            choices: [
+              {
+                name: "📋 Copy to clipboard (paste into GitHub manually)",
+                value: "copy",
+              },
+              {
+                name: "🌐 Upload to GitHub (requires Personal Access Token)",
+                value: "upload",
+              },
+            ],
+          },
+        ]);
+
+        if (action === "upload") {
+          await uploadSSHKeyToGitHub(keyPath, result.email);
+        } else {
+          await copySSHKeyToClipboard(keyPath);
+        }
+      }
     } else if (choice === "personal") {
       const { keyName } = await inquirer.prompt([
         {
@@ -98,7 +205,6 @@ const main = async () => {
     }
   }
 
-  // ✅ Keep the window open with a final prompt
   await inquirer.prompt([
     {
       type: "input",
